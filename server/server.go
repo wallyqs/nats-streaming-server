@@ -632,7 +632,7 @@ func (s *StanServer) createNatsClientConn(name string, sOpts *Options, nOpts *se
 		}
 	}
 
-	Tracef("STAN:  NATS conn opts: %v", ncOpts)
+	Debugf("STAN:  NATS conn opts: %v", ncOpts)
 
 	var nc *nats.Conn
 	if nc, err = ncOpts.Connect(); err != nil {
