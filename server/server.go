@@ -526,18 +526,18 @@ var DefaultNatsServerOptions = server.Options{
 
 func stanDisconnectedHandler(nc *nats.Conn) {
 	if nc.LastError() != nil {
-		Errorf("STAN: connection %q has been disconnected: %v",
+		Errorf("STAN: Connection %q has been disconnected: %v",
 			nc.Opts.Name, nc.LastError())
 	}
 }
 
 func stanReconnectedHandler(nc *nats.Conn) {
-	Noticef("STAN: connection %q reconnected to NATS Server at %q",
+	Noticef("STAN: Connection %q reconnected to NATS Server at %q",
 		nc.Opts.Name, nc.ConnectedUrl())
 }
 
 func stanClosedHandler(nc *nats.Conn) {
-	Debugf("STAN: connection %q has been closed", nc.Opts.Name)
+	Debugf("STAN: Connection %q has been closed", nc.Opts.Name)
 }
 
 func stanErrorHandler(nc *nats.Conn, sub *nats.Subscription, err error) {
@@ -1691,7 +1691,7 @@ func (s *StanServer) performAckExpirationRedelivery(sub *subState) {
 			// unexpired message, and we're done. Reset the sub's ack
 			// timer to fire on the next message expiration.
 			if s.trace {
-				Tracef("STAN: [Client:%s] redelivery, skipping seqno=%d.", clientID, m.Sequence)
+				Tracef("STAN: [Client:%s] Redelivery, skipping seqno=%d.", clientID, m.Sequence)
 			}
 			sub.adjustAckTimer(m.Timestamp)
 			return
@@ -2039,7 +2039,7 @@ func (s *StanServer) processUnSubscribeRequest(m *nats.Msg) {
 
 	cs := s.store.LookupChannel(req.Subject)
 	if cs == nil {
-		Errorf("STAN: [Client:%s] unsub request missing subject %s.",
+		Errorf("STAN: [Client:%s] Unsub request missing subject %s.",
 			req.ClientID, req.Subject)
 		s.sendSubscriptionResponseErr(m.Reply, ErrInvalidSub)
 		return
@@ -2050,7 +2050,7 @@ func (s *StanServer) processUnSubscribeRequest(m *nats.Msg) {
 
 	sub := ss.LookupByAckInbox(req.Inbox)
 	if sub == nil {
-		Errorf("STAN: [Client:%s] unsub request for missing inbox %s.",
+		Errorf("STAN: [Client:%s] Unsub request for missing inbox %s.",
 			req.ClientID, req.Inbox)
 		s.sendSubscriptionResponseErr(m.Reply, ErrInvalidSub)
 		return
@@ -2058,7 +2058,7 @@ func (s *StanServer) processUnSubscribeRequest(m *nats.Msg) {
 
 	// Remove from Client
 	if !s.clients.RemoveSub(req.ClientID, sub) {
-		Errorf("STAN: [Client:%s] unsub request for missing client", req.ClientID)
+		Errorf("STAN: [Client:%s] Unsub request for missing client", req.ClientID)
 		s.sendSubscriptionResponseErr(m.Reply, ErrUnknownClient)
 		return
 	}
@@ -2270,7 +2270,7 @@ func (s *StanServer) processSubscriptionRequest(m *nats.Msg) {
 
 	// ClientID must not be empty.
 	if sr.ClientID == "" {
-		Debugf("STAN: missing clientID in subscription request from %s", m.Subject)
+		Debugf("STAN: Missing clientID in subscription request from %s", m.Subject)
 		s.sendSubscriptionResponseErr(m.Reply,
 			errors.New("stan: malformed subscription request, clientID missing"))
 		return
@@ -2478,7 +2478,7 @@ func (s *StanServer) processAck(cs *stores.ChannelStore, sub *subState, sequence
 	sub.Lock()
 
 	if s.trace {
-		Tracef("STAN: [Client:%s] removing pending ack, subj=%s, seq=%d",
+		Tracef("STAN: [Client:%s] Removing pending ack, subj=%s, seq=%d",
 			sub.ClientID, sub.subject, sequence)
 	}
 
