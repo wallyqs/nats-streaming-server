@@ -6,18 +6,20 @@ import (
 	"bufio"
 	"crypto/tls"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	// Allow dynamic profiling.
+	"github.com/nats-io/gnatsd/util"
 	_ "net/http/pprof"
 )
 
@@ -180,21 +182,23 @@ func PrintServerAndExit() {
 	os.Exit(0)
 }
 
-// Signal Handling
-func (s *Server) handleSignals() {
-	if s.opts.NoSigs {
-		return
-	}
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for sig := range c {
-			Debugf("Trapped Signal; %v", sig)
-			// FIXME, trip running?
-			Noticef("Server Exiting..")
-			os.Exit(0)
+// ProcessCommandLineArgs takes the command line arguments
+// validating and setting flags for handling in case any
+// sub command was present.
+func ProcessCommandLineArgs(cmd *flag.FlagSet) (showVersion bool, showHelp bool, err error) {
+	if len(cmd.Args()) > 0 {
+		arg := cmd.Args()[0]
+		switch strings.ToLower(arg) {
+		case "version":
+			return true, false, nil
+		case "help":
+			return false, true, nil
+		default:
+			return false, false, fmt.Errorf("Unrecognized command: %q\n", arg)
 		}
-	}()
+	}
+
+	return false, false, nil
 }
 
 // Protected check on running state
@@ -476,9 +480,9 @@ func (s *Server) startMonitoring(secure bool) {
 	if secure {
 		hp = net.JoinHostPort(s.opts.HTTPHost, strconv.Itoa(s.opts.HTTPSPort))
 		Noticef("Starting https monitor on %s", hp)
-		config := *s.opts.TLSConfig
+		config := util.CloneTLSConfig(s.opts.TLSConfig)
 		config.ClientAuth = tls.NoClientCert
-		s.http, err = tls.Listen("tcp", hp, &config)
+		s.http, err = tls.Listen("tcp", hp, config)
 
 	} else {
 		hp = net.JoinHostPort(s.opts.HTTPHost, strconv.Itoa(s.opts.HTTPPort))
@@ -562,6 +566,13 @@ func (s *Server) createClient(conn net.Conn) *client {
 	if !s.running {
 		s.mu.Unlock()
 		return c
+	}
+	// If there is a max connections specified, check that adding
+	// this new client would not push us over the max
+	if s.opts.MaxConn > 0 && len(s.clients) >= s.opts.MaxConn {
+		s.mu.Unlock()
+		c.maxConnExceeded()
+		return nil
 	}
 	s.clients[c.cid] = c
 	s.mu.Unlock()
