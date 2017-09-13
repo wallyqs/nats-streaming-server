@@ -996,7 +996,7 @@ func (s *StanServer) createNatsClientConn(name string, sOpts *Options, nOpts *se
 		ncOpts.ReconnectBufSize = 128
 	}
 
-	s.log.Tracef(" NATS conn opts: %v", ncOpts)
+	s.log.Tracef("NATS conn opts: %+v", ncOpts)
 
 	var nc *nats.Conn
 	if nc, err = ncOpts.Connect(); err != nil {
